@@ -1,0 +1,5 @@
+{
+  "name": "River Raid Remastered",
+  "description": "A modern React/Canvas implementation of the classic 80s vertical scrolling shooter River Raid. Navigate the winding river, manage fuel, destroy enemies, and blow up bridges.",
+  "requestFramePermissions": []
+}
