@@ -12,7 +12,6 @@ import {
 import { checkCollision, generateRiverSlice, createExplosion } from '../utils/gameUtils';
 
 // --- Sprite Drawing Helpers ---
-// Using pixel-rect techniques to simulate sprites without external assets
 
 const drawRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color;
@@ -22,144 +21,254 @@ const drawRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number
 const drawPlayerSprite = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     const w = PLAYER_WIDTH;
     const h = PLAYER_HEIGHT;
-    const mid = w / 2;
+    const cx = x + w/2;
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    // Shadow (offset)
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.moveTo(x + mid, y + 4);
-    ctx.lineTo(x + w + 4, y + h + 4);
-    ctx.lineTo(x + mid, y + h - 6);
-    ctx.lineTo(x - 4, y + h + 4);
+    ctx.moveTo(cx, y + 10);
+    ctx.lineTo(x + w, y + h + 8);
+    ctx.lineTo(cx, y + h - 2);
+    ctx.lineTo(x, y + h + 8);
     ctx.fill();
 
-    // Body (White/Grey)
-    ctx.fillStyle = '#e2e8f0'; 
+    // Fuselage (Main Body)
+    ctx.fillStyle = '#e2e8f0'; // Slate 200
     ctx.beginPath();
-    ctx.moveTo(x + mid, y);
-    ctx.lineTo(x + mid + 6, y + h/2);
-    ctx.lineTo(x + mid, y + h - 8);
-    ctx.lineTo(x + mid - 6, y + h/2);
+    ctx.moveTo(cx, y); // Nose
+    ctx.lineTo(cx + 4, y + 10);
+    ctx.lineTo(cx + 4, y + h - 6);
+    ctx.lineTo(cx - 4, y + h - 6);
+    ctx.lineTo(cx - 4, y + 10);
     ctx.fill();
 
-    // Wings (Yellow/White Accent)
-    ctx.fillStyle = '#f8fafc';
+    // Wings (Swept back)
+    ctx.fillStyle = '#94a3b8'; // Slate 400
     ctx.beginPath();
-    ctx.moveTo(x + mid, y + 10);
-    ctx.lineTo(x + w, y + h);
-    ctx.lineTo(x + mid, y + h - 10); // Engine area
-    ctx.lineTo(x, y + h);
+    ctx.moveTo(cx, y + 12);
+    ctx.lineTo(x + w, y + h - 4);
+    ctx.lineTo(cx + 5, y + h - 8);
+    ctx.lineTo(cx, y + h - 8);
+    ctx.lineTo(cx - 5, y + h - 8);
+    ctx.lineTo(x, y + h - 4);
     ctx.fill();
 
-    // Red Stripe/Cockpit
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(x + mid - 2, y + 10, 4, 10);
+    // Tail Stabilizers
+    ctx.fillStyle = '#64748b'; // Slate 500
+    ctx.beginPath();
+    ctx.moveTo(cx, y + h - 16);
+    ctx.lineTo(cx + 10, y + h);
+    ctx.lineTo(cx - 10, y + h);
+    ctx.fill();
+
+    // Vertical Fin Highlight
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.moveTo(cx, y + h - 14);
+    ctx.lineTo(cx + 2, y + h - 2);
+    ctx.lineTo(cx - 2, y + h - 2);
+    ctx.fill();
+
+    // Cockpit
+    ctx.fillStyle = '#0ea5e9'; // Sky 500
+    ctx.beginPath();
+    ctx.moveTo(cx, y + 6);
+    ctx.lineTo(cx + 3, y + 12);
+    ctx.lineTo(cx, y + 14);
+    ctx.lineTo(cx - 3, y + 12);
+    ctx.fill();
     
-    // Engine Exhaust (Dark)
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(x + mid - 3, y + h - 10, 6, 4);
+    // Red Accents on Wingtips
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(x, y + h - 6, 3, 4);
+    ctx.fillRect(x + w - 3, y + h - 6, 3, 4);
+    
+    // Engine flame
+    ctx.fillStyle = `rgba(251, 146, 60, ${Math.random() * 0.7 + 0.3})`;
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, y + h);
+    ctx.lineTo(cx, y + h + 8 + Math.random()*6);
+    ctx.lineTo(cx + 3, y + h);
+    ctx.fill();
 };
 
 const drawShipSprite = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+    // Side profile of a military ship
+    const deckH = h * 0.5;
+    
+    // Water ripple / Shadow
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(x, y + h - 2, w, 2);
+
     // Hull
-    ctx.fillStyle = '#1e293b'; // Slate 800
+    ctx.fillStyle = '#374151'; // Gray 700
     ctx.beginPath();
-    ctx.moveTo(x, y + h); // Bottom Left
-    ctx.lineTo(x + w, y + h); // Bottom Right
-    ctx.lineTo(x + w - 4, y + 6); // Top Right (Bow if moving right)
-    ctx.lineTo(x + 4, y + 6); // Top Left
+    ctx.moveTo(x, y + deckH); // Stern
+    ctx.lineTo(x + 5, y + h); // Waterline stern
+    ctx.lineTo(x + w - 10, y + h); // Waterline bow
+    ctx.lineTo(x + w, y + deckH); // Bow tip
     ctx.fill();
 
-    // Deck
-    ctx.fillStyle = '#cbd5e1'; // Slate 300
-    ctx.fillRect(x + 6, y + 4, w - 12, h - 8);
+    // Deck stripe
+    ctx.fillStyle = '#4b5563';
+    ctx.fillRect(x + 2, y + deckH, w - 4, 3);
 
-    // Cabin
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(x + w/2 - 5, y + h/2 - 8, 10, 8);
+    // Superstructure (Bridge)
+    ctx.fillStyle = '#9ca3af'; // Gray 400
+    ctx.fillRect(x + 10, y + 4, 14, deckH - 4);
     
-    // Funnel
-    ctx.fillStyle = '#dc2626'; // Red
-    ctx.fillRect(x + w/2 - 3, y + h/2 - 14, 6, 6);
+    // Windows
+    ctx.fillStyle = '#1f2937'; // Dark windows
+    ctx.fillRect(x + 12, y + 8, 2, 2);
+    ctx.fillRect(x + 16, y + 8, 2, 2);
+    ctx.fillRect(x + 20, y + 8, 2, 2);
+
+    // Mast
+    ctx.fillStyle = '#d1d5db';
+    ctx.fillRect(x + 16, y, 2, 6);
+    ctx.fillRect(x + 12, y + 2, 10, 1);
+
+    // Cannon (Front)
+    ctx.fillStyle = '#6b7280';
+    ctx.beginPath();
+    ctx.arc(x + w - 12, y + deckH - 2, 4, 0, Math.PI, true);
+    ctx.fill();
+    ctx.fillRect(x + w - 12, y + deckH - 4, 8, 2); // Barrel
 };
 
 const drawHeliSprite = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
-    const time = Date.now();
-    const bladeOffset = (time / 10) % 10;
-    
+    // Side view helicopter
+    const cx = x + w/2;
+    const cy = y + h/2;
+
     // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(x + 10, y + h + 10, 20, 10);
-
-    // Body
-    ctx.fillStyle = '#0f766e'; // Teal 700
-    ctx.beginPath();
-    ctx.ellipse(x + w/2, y + h/2 + 2, 10, 8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.ellipse(cx, y + h + 4, w/2, 3, 0, 0, Math.PI*2);
     ctx.fill();
 
-    // Tail
-    ctx.fillRect(x + w/2, y + h/2, 18, 4);
-    ctx.fillRect(x + w/2 + 16, y + h/2 - 4, 2, 8); // Tail rotor
+    // Body Color
+    const bodyColor = '#065f46'; // Teal 800
 
-    // Cockpit
-    ctx.fillStyle = '#67e8f9';
+    // Tail Boom
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
-    ctx.arc(x + w/2 - 4, y + h/2 + 2, 4, 0, Math.PI * 2);
+    ctx.moveTo(x + 12, cy);
+    ctx.lineTo(x + w, cy - 2);
+    ctx.lineTo(x + w, cy + 2);
+    ctx.lineTo(x + 12, cy + 6);
     ctx.fill();
 
-    // Rotor Blades (Spinning)
+    // Cabin Bubble
+    ctx.fillStyle = '#047857'; // Teal 700
+    ctx.beginPath();
+    ctx.arc(x + 14, cy + 2, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Cockpit Glass
+    ctx.fillStyle = '#67e8f9'; // Cyan 300
+    ctx.beginPath();
+    ctx.moveTo(x + 14, cy + 2);
+    ctx.arc(x + 14, cy + 2, 8, Math.PI * 0.7, Math.PI * 1.5);
+    ctx.fill();
+
+    // Skids
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + 8, cy + 12);
+    ctx.lineTo(x + 20, cy + 12);
+    ctx.moveTo(x + 10, cy + 10);
+    ctx.lineTo(x + 10, cy + 12);
+    ctx.moveTo(x + 18, cy + 10);
+    ctx.lineTo(x + 18, cy + 12);
+    ctx.stroke();
+    
+    // Main Rotor (Spinning on top)
     ctx.fillStyle = '#111';
-    if (Math.floor(time / 50) % 2 === 0) {
-        ctx.fillRect(x, y + 4, w, 2);
-        ctx.fillRect(x + w/2 - 1, y, 2, 8);
+    const time = Date.now();
+    if (Math.floor(time / 40) % 2 === 0) {
+        ctx.fillRect(x - 2, y - 2, w + 4, 2); // Wide
     } else {
-        ctx.beginPath();
-        ctx.moveTo(x + 2, y + 2);
-        ctx.lineTo(x + w - 2, y + 6);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x + w - 2, y + 2);
-        ctx.lineTo(x + 2, y + 6);
-        ctx.stroke();
+        ctx.fillRect(x + 8, y - 2, w - 16, 2); // Narrow
+    }
+    ctx.fillRect(x + 13, y, 2, 4); // Mast
+
+    // Tail Rotor
+    if (Math.floor(time / 20) % 2 === 0) {
+       ctx.fillRect(x + w - 2, cy - 5, 2, 10);
+    } else {
+       ctx.fillRect(x + w - 5, cy - 1, 8, 2);
     }
 };
 
-const drawJetSprite = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+const drawJetSprite = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, speedX: number = 0) => {
+    // Side-ish view for crossing jets
+    const facingRight = speedX >= 0;
+    
+    ctx.save();
+    // Flip if moving left
+    if (!facingRight) {
+        ctx.translate(x + w, y);
+        ctx.scale(-1, 1);
+        ctx.translate(-x, -y);
+    }
+
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath();
-    ctx.moveTo(x + w/2, y + 6);
-    ctx.lineTo(x + w + 6, y + h/2 + 6);
-    ctx.lineTo(x + w/2, y + h + 6);
-    ctx.lineTo(x - 6, y + h/2 + 6);
+    ctx.moveTo(x + 10, y + 20);
+    ctx.lineTo(x + w, y + 20);
+    ctx.lineTo(x + 15, y + 26);
     ctx.fill();
 
-    // Body
-    ctx.fillStyle = '#a855f7'; // Purple jet
+    // Main Body
+    ctx.fillStyle = '#b91c1c'; // Red 700
     ctx.beginPath();
-    ctx.moveTo(x + w/2, y); // Nose
-    ctx.lineTo(x + w, y + h/2); // Right wing
-    ctx.lineTo(x + w/2, y + h); // Tail
-    ctx.lineTo(x, y + h/2); // Left wing
+    ctx.moveTo(x + w, y + 10); // Nose tip
+    ctx.lineTo(x, y + 6); // Tail top
+    ctx.lineTo(x + 4, y + 14); // Tail bottom
+    ctx.lineTo(x + w - 4, y + 14); // Under nose
     ctx.fill();
 
-    // Detail
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x + w/2 - 1, y + 4, 2, h - 8);
+    // Delta Wing (Perspective)
+    ctx.fillStyle = '#7f1d1d'; // Red 900
+    ctx.beginPath();
+    ctx.moveTo(x + 20, y + 10);
+    ctx.lineTo(x + 8, y + 24); // Wing tip
+    ctx.lineTo(x + 28, y + 10);
+    ctx.fill();
+
+    // Vertical Stabilizer
+    ctx.fillStyle = '#991b1b';
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y + 8);
+    ctx.lineTo(x + 8, y - 2);
+    ctx.lineTo(x + 14, y + 8);
+    ctx.fill();
+    
+    // Cockpit
+    ctx.fillStyle = '#f59e0b'; // Amber
+    ctx.fillRect(x + 22, y + 6, 6, 4);
+
+    ctx.restore();
 };
 
 const drawFuelSprite = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
-    // Base
+    // Base canister
     ctx.fillStyle = '#be123c'; // Rose 700
     ctx.fillRect(x, y, w, h);
     
-    // Highlight
+    // Shading
     ctx.fillStyle = '#f43f5e';
     ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+    
+    // 3D effect side
+    ctx.fillStyle = '#881337';
+    ctx.fillRect(x + w - 4, y + 2, 2, h - 4);
 
     // Text
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px monospace';
+    ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText("FUEL", x + w/2, y + h/2);
@@ -170,50 +279,87 @@ const drawFuelSprite = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 };
 
 const drawBridge = (ctx: CanvasRenderingContext2D, y: number) => {
-    // Road
+    // Road Deck
     ctx.fillStyle = '#374151'; // Gray 700
     ctx.fillRect(0, y, CANVAS_WIDTH, 24);
     
-    // Yellow Lines
-    ctx.fillStyle = '#facc15';
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.moveTo(0, y + 12);
-    ctx.lineTo(CANVAS_WIDTH, y + 12);
-    ctx.stroke();
-    ctx.setLineDash([]); // Reset
+    // Side Rails
+    ctx.fillStyle = '#1f2937'; // Gray 800
+    ctx.fillRect(0, y - 2, CANVAS_WIDTH, 4);
+    ctx.fillRect(0, y + 22, CANVAS_WIDTH, 4);
 
-    // Supports
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(CANVAS_WIDTH/4, y + 24, 20, 10);
-    ctx.fillRect((CANVAS_WIDTH/4)*3, y + 24, 20, 10);
+    // Yellow Lane Markers
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    for(let i=0; i<CANVAS_WIDTH; i+=40) {
+        ctx.fillRect(i, y + 11, 20, 2);
+    }
+    
+    // Bridge Supports (Pillars) in water
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(CANVAS_WIDTH/4 - 10, y + 24, 20, 15);
+    ctx.fillRect(CANVAS_WIDTH*0.75 - 10, y + 24, 20, 15);
 };
 
 const drawTree = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    // Pine tree style - Darker for contrast
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 4, 8, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+
     // Trunk
-    ctx.fillStyle = '#3f2c22'; // Brown
-    ctx.fillRect(x, y, 4, 8);
-    // Leaves (Pixel clump)
-    ctx.fillStyle = '#15803d'; // Green
-    ctx.fillRect(x - 6, y - 8, 16, 8); // Base
-    ctx.fillRect(x - 4, y - 14, 12, 6); // Mid
-    ctx.fillRect(x - 2, y - 18, 8, 4); // Top
+    ctx.fillStyle = '#451a03'; // Dark Brown
+    ctx.fillRect(x - 2, y - 2, 4, 6);
+
+    // Leaves layers (Dark Green)
+    ctx.fillStyle = '#14532d'; // Green 900
+    
+    // Bottom layer
+    ctx.beginPath();
+    ctx.moveTo(x, y - 6);
+    ctx.lineTo(x + 10, y + 2);
+    ctx.lineTo(x - 10, y + 2);
+    ctx.fill();
+
+    // Middle layer
+    ctx.fillStyle = '#166534'; // Green 800
+    ctx.beginPath();
+    ctx.moveTo(x, y - 12);
+    ctx.lineTo(x + 8, y - 4);
+    ctx.lineTo(x - 8, y - 4);
+    ctx.fill();
+
+    // Top layer
+    ctx.fillStyle = '#15803d'; // Green 700
+    ctx.beginPath();
+    ctx.moveTo(x, y - 18);
+    ctx.lineTo(x + 6, y - 10);
+    ctx.lineTo(x - 6, y - 10);
+    ctx.fill();
 };
 
 const drawHouse = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
-    // Walls
+    // Cottage
     ctx.fillStyle = '#e5e5e5';
-    ctx.fillRect(x, y, 12, 10);
+    ctx.fillRect(x, y, 14, 10);
+    
     // Roof
-    ctx.fillStyle = '#b91c1c';
+    ctx.fillStyle = '#991b1b'; // Red roof
     ctx.beginPath();
     ctx.moveTo(x - 2, y);
-    ctx.lineTo(x + 6, y - 6);
-    ctx.lineTo(x + 14, y);
+    ctx.lineTo(x + 7, y - 8);
+    ctx.lineTo(x + 16, y);
     ctx.fill();
+    
     // Door
     ctx.fillStyle = '#404040';
-    ctx.fillRect(x + 4, y + 4, 4, 6);
+    ctx.fillRect(x + 5, y + 4, 4, 6);
+    
+    // Window
+    ctx.fillStyle = '#93c5fd';
+    ctx.fillRect(x + 2, y + 2, 3, 3);
 };
 
 
@@ -221,7 +367,7 @@ const RiverRaidGame: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number>(0);
   
-  // Game State Refs (Mutable for performance in game loop)
+  // Game State Refs
   const gameStateRef = useRef<GameState>(GameState.MENU);
   const playerRef = useRef<PlayerState>({
     x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2,
@@ -242,7 +388,7 @@ const RiverRaidGame: React.FC = () => {
   const levelRef = useRef<number>(1);
   const lastShotTime = useRef<number>(0);
 
-  // React State for UI Overlay (updated less frequently)
+  // React State for UI Overlay
   const [uiState, setUiState] = useState<{score: number, fuel: number, lives: number, state: GameState}>({
     score: 0,
     fuel: MAX_FUEL,
@@ -268,11 +414,9 @@ const RiverRaidGame: React.FC = () => {
     distanceTraveledRef.current = 0;
     levelRef.current = 1;
     
-    // Generate initial river
     const initialRiver: RiverSlice[] = [];
     let currentSlice: RiverSlice = { y: CANVAS_HEIGHT, leftBank: 100, rightBank: CANVAS_WIDTH - 100, island: null, decorations: [] };
     
-    // Fill screen plus buffer
     for (let i = 0; i < CANVAS_HEIGHT + 200; i++) {
       currentSlice = generateRiverSlice(currentSlice, 0, 1);
       initialRiver.push(currentSlice);
@@ -286,7 +430,7 @@ const RiverRaidGame: React.FC = () => {
     playerRef.current.x = CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2;
     playerRef.current.fuel = MAX_FUEL;
     playerRef.current.vx = 0;
-    entitiesRef.current = entitiesRef.current.filter(e => e.y < playerRef.current.y - 300); // Clear nearby enemies
+    entitiesRef.current = entitiesRef.current.filter(e => e.y < playerRef.current.y - 300);
   };
 
   // Game Loop
@@ -302,13 +446,11 @@ const RiverRaidGame: React.FC = () => {
     if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('d')) {
       player.x += PLAYER_SPEED_X;
     }
-    // Acceleration / Deceleration (affects scrolling speed)
     if (keysPressed.current.has('ArrowUp') || keysPressed.current.has('w')) {
-      player.vy = Math.min(player.vy + 0.05, 6); // Slower acceleration
+      player.vy = Math.min(player.vy + 0.05, 6);
     } else if (keysPressed.current.has('ArrowDown') || keysPressed.current.has('s')) {
-      player.vy = Math.max(player.vy - 0.1, 0.5); // Min speed
+      player.vy = Math.max(player.vy - 0.1, 0.5);
     } else {
-      // Natural deceleration to cruising speed
       if (player.vy > INITIAL_SCROLL_SPEED) player.vy -= 0.02;
       if (player.vy < INITIAL_SCROLL_SPEED) player.vy += 0.02;
     }
@@ -316,7 +458,7 @@ const RiverRaidGame: React.FC = () => {
     // Shoot
     if (keysPressed.current.has(' ') || keysPressed.current.has('Enter')) {
       const now = Date.now();
-      if (now - lastShotTime.current > 250) { // Fire rate limit
+      if (now - lastShotTime.current > 250) {
         bulletsRef.current.push({
           id: Math.random().toString(),
           x: player.x + PLAYER_WIDTH / 2 - 2,
@@ -332,48 +474,45 @@ const RiverRaidGame: React.FC = () => {
     const speed = player.vy;
     distanceTraveledRef.current += speed;
     
-    // Move all river slices down
     for (const slice of riverRef.current) {
       slice.y += speed;
     }
-    
-    // Remove slices that are off-screen (bottom)
     riverRef.current = riverRef.current.filter(slice => slice.y < CANVAS_HEIGHT + 100);
     
-    // Add new slices at top
     if (riverRef.current.length > 0) {
       while (riverRef.current[riverRef.current.length - 1].y > -50) {
         const lastSlice = riverRef.current[riverRef.current.length - 1];
         const newSlice = generateRiverSlice(lastSlice, 0, levelRef.current);
-        // Ensure strict continuity
         newSlice.y = lastSlice.y - 1; 
         riverRef.current.push(newSlice);
         
-        // Spawn Logic (Check strictly on new slice generation)
-        // Check for Bridge
+        // Spawn Logic
         if (Math.abs(distanceTraveledRef.current % BRIDGE_INTERVAL) < speed) {
           entitiesRef.current.push({
               id: Math.random().toString(),
               type: EnemyType.BRIDGE,
-              x: 0, // Bridges span full width
+              x: 0,
               y: newSlice.y,
               width: CANVAS_WIDTH,
-              height: 24, // Thinner visual hit box
+              height: 24,
               markedForDeletion: false
           });
-        } else if (Math.random() < 0.03) { // 3% chance per slice
-          // Spawn Enemy or Fuel
-          const isFuel = Math.random() < 0.25; // 25% chance for fuel
+        } else if (Math.random() < 0.03) {
+          const isFuel = Math.random() < 0.25;
           const type = isFuel ? EnemyType.FUEL_DEPOT : 
                       (Math.random() < 0.5 ? EnemyType.SHIP : (Math.random() < 0.5 ? EnemyType.HELICOPTER : EnemyType.JET));
           
-          // Find safe spawn x (in the water)
           const margin = 20;
           const safeMin = newSlice.leftBank + margin;
           const safeMax = newSlice.rightBank - margin;
           
           if (safeMax > safeMin) {
             const spawnX = safeMin + Math.random() * (safeMax - safeMin);
+            // Assign horizontal speed for moving enemies
+            let sx = 0;
+            if (type === EnemyType.JET) sx = Math.random() > 0.5 ? 2.5 : -2.5;
+            if (type === EnemyType.SHIP || type === EnemyType.HELICOPTER) sx = 0; // Ships/Helis mostly static in River Raid, or slow patrol
+
             entitiesRef.current.push({
               id: Math.random().toString(),
               type,
@@ -382,7 +521,7 @@ const RiverRaidGame: React.FC = () => {
               width: isFuel ? 30 : 40,
               height: isFuel ? 50 : 30,
               markedForDeletion: false,
-              speedX: type === EnemyType.JET ? (Math.random() > 0.5 ? 2 : -2) : (type === EnemyType.SHIP ? 0.5 : 0)
+              speedX: sx
             });
           }
         }
@@ -390,14 +529,11 @@ const RiverRaidGame: React.FC = () => {
     }
 
     // --- 3. Entity Updates ---
-    // Entities move down with the river (relative to player)
     entitiesRef.current.forEach(e => {
       e.y += speed;
       
-      // Horizontal movement for dynamic enemies
       if (e.speedX) {
         e.x += e.speedX;
-        // Simple bounce logic
         if (e.x < 0 || e.x > CANVAS_WIDTH) e.speedX *= -1;
       }
       
@@ -405,7 +541,7 @@ const RiverRaidGame: React.FC = () => {
     });
     
     bulletsRef.current.forEach(b => {
-      b.y += b.vy; // Bullets move up (negative vy)
+      b.y += b.vy;
     });
     bulletsRef.current = bulletsRef.current.filter(b => b.y > -50);
 
@@ -419,7 +555,6 @@ const RiverRaidGame: React.FC = () => {
     // --- 4. Collision Detection ---
     
     // A. Player vs Land
-    // Find river slice at player Y
     const playerFeetY = player.y + PLAYER_HEIGHT;
     const playerHeadY = player.y;
     
@@ -431,7 +566,6 @@ const RiverRaidGame: React.FC = () => {
         touchingLand = true;
       }
       if (slice.island) {
-        // More forgiving collision for islands
         if (checkCollision(
           { x: player.x + 5, y: player.y + 5, width: PLAYER_WIDTH - 10, height: PLAYER_HEIGHT - 10 },
           { x: slice.island.left, y: slice.y, width: slice.island.right - slice.island.left, height: 1 }
@@ -446,8 +580,7 @@ const RiverRaidGame: React.FC = () => {
        return;
     }
 
-    // B. Player vs Entities (Fuel or Crash)
-    // Reduce player hitbox slightly for better gameplay feel
+    // B. Player vs Entities
     const playerBox = { x: player.x + 4, y: player.y + 4, width: PLAYER_WIDTH - 8, height: PLAYER_HEIGHT - 8 };
     
     entitiesRef.current.forEach(e => {
@@ -456,7 +589,6 @@ const RiverRaidGame: React.FC = () => {
       if (checkCollision(playerBox, entityBox)) {
         if (e.type === EnemyType.FUEL_DEPOT) {
           player.fuel = Math.min(player.fuel + FUEL_REFILL_RATE * 5, MAX_FUEL);
-          // Don't delete fuel immediately, let player fly over it
         } else if (e.type === EnemyType.BRIDGE) {
            handleDeath("Crashed into bridge!");
         } else {
@@ -480,7 +612,7 @@ const RiverRaidGame: React.FC = () => {
           if (e.type === EnemyType.BRIDGE) {
              e.markedForDeletion = true;
              player.score += 500;
-             levelRef.current++; // Increase difficulty
+             levelRef.current++;
              particlesRef.current.push(...createExplosion(e.x + CANVAS_WIDTH/2, e.y, '#fbbf24'));
           } else {
              e.markedForDeletion = true;
@@ -491,12 +623,10 @@ const RiverRaidGame: React.FC = () => {
       });
       
       if (hit) {
-         // Bullet disappears
          b.y = -999; 
       }
     });
     
-    // Cleanup deleted entities
     entitiesRef.current = entitiesRef.current.filter(e => !e.markedForDeletion);
     bulletsRef.current = bulletsRef.current.filter(b => b.y > -1000);
 
@@ -506,7 +636,6 @@ const RiverRaidGame: React.FC = () => {
       handleDeath("Out of fuel!");
     }
 
-    // Sync UI
     if (Math.random() < 0.1) {
         setUiState({
             score: Math.floor(player.score),
@@ -519,7 +648,6 @@ const RiverRaidGame: React.FC = () => {
   }, []);
 
   const handleDeath = (reason: string) => {
-    // Boom
     particlesRef.current.push(...createExplosion(playerRef.current.x + PLAYER_WIDTH/2, playerRef.current.y + PLAYER_HEIGHT/2, '#ef4444'));
     
     playerRef.current.lives -= 1;
@@ -527,7 +655,6 @@ const RiverRaidGame: React.FC = () => {
       gameStateRef.current = GameState.GAME_OVER;
       setUiState(prev => ({ ...prev, lives: 0, state: GameState.GAME_OVER }));
     } else {
-      // Respawn logic
       resetAfterDeath();
     }
   };
@@ -538,7 +665,6 @@ const RiverRaidGame: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Safe guard against empty river array
     if (!riverRef.current || riverRef.current.length < 2) return;
 
     // Clear background (Land color)
@@ -546,8 +672,6 @@ const RiverRaidGame: React.FC = () => {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // 0. Draw Land Textures (Trees, Houses) from Slices
-    // Optimization: Only draw decoration if it is on land. 
-    // Since decorations are stored in slice, they move with land.
     for (const slice of riverRef.current) {
         if (slice.decorations) {
             for (const d of slice.decorations) {
@@ -561,17 +685,14 @@ const RiverRaidGame: React.FC = () => {
     ctx.fillStyle = COLOR_WATER;
     ctx.beginPath();
     
-    // Left Bank Path
     if (riverRef.current[0]) {
       ctx.moveTo(riverRef.current[0].leftBank, riverRef.current[0].y);
       for (const slice of riverRef.current) {
           ctx.lineTo(slice.leftBank, slice.y);
       }
-      // Cross over to right bank at top
       const topSlice = riverRef.current[riverRef.current.length-1];
       ctx.lineTo(topSlice.rightBank, topSlice.y);
       
-      // Right Bank Path (downwards)
       for (let i = riverRef.current.length - 1; i >= 0; i--) {
           const slice = riverRef.current[i];
           ctx.lineTo(slice.rightBank, slice.y);
@@ -584,7 +705,6 @@ const RiverRaidGame: React.FC = () => {
       for (const slice of riverRef.current) {
           if (slice.island) {
               ctx.fillRect(slice.island.left, slice.y, slice.island.right - slice.island.left, 2); 
-              // Island Decoration
               if (slice.decorations) {
                  for (const d of slice.decorations) {
                     if (d.x > slice.island.left && d.x < slice.island.right) {
@@ -595,7 +715,7 @@ const RiverRaidGame: React.FC = () => {
           }
       }
       
-      // Draw Border details (Darker edge for depth)
+      // Draw Border details
       ctx.fillStyle = COLOR_LAND_BORDER;
       for (const slice of riverRef.current) {
         drawRect(ctx, slice.leftBank - 6, slice.y, 6, 2, COLOR_LAND_BORDER);
@@ -614,7 +734,8 @@ const RiverRaidGame: React.FC = () => {
       } else if (e.type === EnemyType.HELICOPTER) {
          drawHeliSprite(ctx, e.x, e.y, e.width, e.height);
       } else if (e.type === EnemyType.JET) {
-         drawJetSprite(ctx, e.x, e.y, e.width, e.height);
+         // Pass speedX to determine facing direction
+         drawJetSprite(ctx, e.x, e.y, e.width, e.height, e.speedX);
       }
     });
 
@@ -624,7 +745,7 @@ const RiverRaidGame: React.FC = () => {
     }
 
     // 4. Draw Bullets
-    ctx.fillStyle = '#fef08a'; // Lighter yellow
+    ctx.fillStyle = '#fef08a';
     bulletsRef.current.forEach(b => {
       ctx.fillRect(b.x, b.y, BULLET_SIZE, BULLET_SIZE*2);
     });
@@ -646,12 +767,9 @@ const RiverRaidGame: React.FC = () => {
   }, [update, draw]);
 
   useEffect(() => {
-    // Initialize river immediately so the menu has a background
-    // and draw() doesn't crash on first frame
     const initialRiver: RiverSlice[] = [];
     let currentSlice: RiverSlice = { y: CANVAS_HEIGHT, leftBank: 100, rightBank: CANVAS_WIDTH - 100, island: null, decorations: [] };
     
-    // Fill screen plus buffer
     for (let i = 0; i < CANVAS_HEIGHT + 200; i++) {
       currentSlice = generateRiverSlice(currentSlice, 0, 1);
       initialRiver.push(currentSlice);
@@ -662,7 +780,6 @@ const RiverRaidGame: React.FC = () => {
     return () => cancelAnimationFrame(animationFrameId.current);
   }, [loop]);
 
-  // Input Handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.key);
@@ -702,7 +819,6 @@ const RiverRaidGame: React.FC = () => {
                 className={`h-full transition-all duration-100 ${uiState.fuel < 30 ? 'bg-red-500 animate-pulse' : 'bg-gradient-to-r from-yellow-500 to-green-500'}`} 
                 style={{ width: `${Math.max(0, (uiState.fuel / MAX_FUEL) * 100)}%` }}
               />
-              {/* Tick marks */}
               <div className="absolute inset-0 flex justify-between px-2">
                  <div className="w-0.5 h-full bg-black/20"></div>
                  <div className="w-0.5 h-full bg-black/20"></div>
@@ -755,7 +871,7 @@ const RiverRaidGame: React.FC = () => {
         ref={canvasRef} 
         width={CANVAS_WIDTH} 
         height={CANVAS_HEIGHT} 
-        className="border-4 border-gray-800 shadow-2xl bg-[#4d7c0f] rounded-sm max-h-[95vh] w-auto aspect-[3/4]"
+        className="border-4 border-gray-800 shadow-2xl bg-[#84cc16] rounded-sm max-h-[95vh] w-auto aspect-[3/4]"
       />
       
     </div>

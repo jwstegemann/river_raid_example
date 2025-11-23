@@ -22,8 +22,8 @@ export const ENEMY_SPAWN_CHANCE = 0.02;
 
 // Colors
 export const COLOR_WATER = '#3b82f6'; // blue-500
-export const COLOR_LAND = '#4d7c0f'; // lime-700 (More organic green)
-export const COLOR_LAND_BORDER = '#365314'; // lime-950
+export const COLOR_LAND = '#84cc16'; // lime-500 (Lighter to contrast with trees)
+export const COLOR_LAND_BORDER = '#4d7c0f'; // lime-700
 export const COLOR_PLAYER = '#e5e7eb'; // gray-200
 export const COLOR_PLAYER_DETAIL = '#ef4444'; // red-500
 export const COLOR_FUEL_TEXT = '#facc15'; // yellow-400
